@@ -47,3 +47,19 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# ----------------- PRIVATE RESEARCH & SENSITIVE HACKATHON ASSETS -----------------
+# Research papers, docx guides, benchmark reports, and private docs
+doc/
+document/
+documents/
+*.docx
+*.doc
+*.pdf
+*.pptx
+*.ppt
+ARCHITECTURE.md
+CHANGELOG.md
+PERFORMANCE.md
+finai.db-shm
+finai.db-wal
