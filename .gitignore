@@ -1,55 +1,39 @@
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized
 __pycache__/
 *.py[cod]
 *$py.class
 *.pyd
-
-# C extensions
 *.so
 
 # Distribution / packaging
-.Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-
-# PyInstaller
-*.manifest
-*.spec.bak
-
-# Pytest / coverage
-.pytest_cache/
-.coverage
-htmlcov/
 
 # Environments
 .env
 .venv
 env/
 venv/
-ENV/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # OS metadata
 Thumbs.db
-ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 
-# ----------------- PRIVATE RESEARCH & SENSITIVE HACKATHON ASSETS -----------------
-# Research papers, docx guides, benchmark reports, and private docs
+# Database (local user data)
+finai.db
+finai.db-shm
+finai.db-wal
+
+# Private research & hackathon assets
 doc/
 document/
 documents/
@@ -58,8 +42,13 @@ documents/
 *.pdf
 *.pptx
 *.ppt
-ARCHITECTURE.md
-CHANGELOG.md
-PERFORMANCE.md
-finai.db-shm
-finai.db-wal
+
+# Logs
+*.log
+pip-install-error.log
+server-error.log
+server.log
+pip-install.log
+
+# Private project management (for AI agent continuation)
+PROJECT_STATUS.md

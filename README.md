@@ -1,126 +1,100 @@
-# ⚖️ FinAI — On-Device Neuro-Symbolic Tax Audit & Enterprise Financial Controller
+# FinAI — Offline-First Indian Finance & Tax Intelligence
 
-> **A 100% Offline, Privacy-Preserving AI Chartered Accountant & Financial Compliance Workstation**
-> Built for Salaried Employees, Freelancers (Sec 44ADA), MSMEs (Sec 44AD), and B2B Taxpayers in India.
+> **Authors**: Yash Kumar Choudhary¹, Vaibhav Saini¹, Utkarsh Kumar¹, Dr. Shelja Sharma²
 
----
+An offline-first, neuro-symbolic Indian finance and tax application. FinAI uses deterministic Python rule engines for all money calculations and optionally uses a local open-source Ollama model only to understand free-form natural language.
 
-## 👥 **Authors & Research Team**
-- **Yash Kumar Choudhary¹**, **Vaibhav Saini¹**, **Utkarsh Kumar¹**, **Dr. Shelja Sharma²**
-- *Department of Computer Science & Engineering, Faculty of Engineering & Technology*
-- `{yash.choudhary, vaibhav.saini, utkarsh.kumar, shelja.sharma}@university.edu.in`
+## Features
 
----
+### GST & Business Desk
+- **Natural language transaction drafting** — describe a sale/purchase in plain English
+- **Smart clarification** — when product/service is unspecified, quick-pick chips appear instead of guessing a rate
+- **22+ HSN/SAC master catalog** — versioned records with effective dates, CBIC notification citations, ITC eligibility, RCM flags, and cess rates
+- **Date-aware GST rate engine** — validates rates against `effective_from` / `effective_to` windows
+- **Math validation guardrails** — verifies CGST+SGST=GST, Base+Tax=Total, non-negative constraints
+- **Section 17(5) blocked credit detection** — flags motor vehicles, food/catering, travel, insurance, gifts
+- **"Why This Answer?"** — every result shows the statutory notification, classification basis, formula, and validation checks
 
-## 🌟 **Key Innovations & Capabilities**
+### Personal Tax Desk
+- **Old vs New regime comparison** — Budget 2024/25 slabs with correct rebate under Section 87A
+- **HRA exemption calculator** — minimum of 3 rules (actual HRA, % of basic, rent minus 10%)
+- **Regime recommendation** with savings amount
 
-1. **🚪 Dual Compliance Portal Gateway**:
-   - **`[ 🏢 GST & Business Portal ]`**: Natural language HSN/SAC resolution, GSTR-2B automated ITC reconciliation, Section 17(5) blocked credit protection, Rule 86B 1% cash check, and official GSTR-3B JSON exports.
-   - **`[ 👤 Personal Tax & Salary Optimizer ]`**: Old vs New Regime (Section 115BAC) auto-optimizer, ₹60k Section 87A rebate, Section 10(13A) HRA least-of-three calculation, Budget 2024/25 Capital Gains tax, and official ITR-1/4 JSON exports.
+### Capital Gains (Budget 2024/25)
+- STCG equity at **20%** (Section 111A)
+- LTCG equity at **12.5%** (Section 112A) with **₹1,25,000 exemption**
+- LTCG property/gold at **12.5%** (no indexation post Budget 2024)
+- 4% Health & Education Cess
 
-2. **🧠 Neuro-Symbolic AI Architecture (Zero Hallucinations)**:
-   - Eliminates LLM arithmetic errors by strictly delegating mathematical calculations to **deterministic Python domain rule engines**.
-   - Language models (**Meta Llama 3.2 3B / Microsoft Phi-3 Mini**) are utilized purely for conversational synthesis and legal guidance.
+### Freelancer & MSME
+- **Section 44ADA** — 50% deemed profit for professionals (up to ₹75L)
+- **Section 44AD** — 6% digital + 8% cash turnover for small businesses (up to ₹3Cr)
 
-3. **📚 Sub-Millisecond Offline Legal RAG (54+ Statutory Chunks)**:
-   - Grounded in primary Indian statutory law: *Income Tax Act 1961*, *CGST Act 2017*, *Central Board Circulars*, *PwC Worldwide Tax Summaries*, and landmark *Supreme Court Precedents* (*Safari Retreats*, *Bharti Airtel*).
-   - Average retrieval latency: **0.23 ms** via SQLite FTS5.
+### EMI Calculator
+- Standard reducing-balance EMI formula
+- Total interest and total payment breakdown
 
-4. **🔍 Natural Language HSN / SAC Code Resolver**:
-   - Matches plain English queries (e.g., *"wireless mouse"*, *"software consulting"*, *"office chairs"*) to official 4/6/8-digit HSN/SAC codes, tax rates, and ITC eligibility.
+### GSTR-2B Reconciliation
+- Upload purchase register CSV and GSTR-2B CSV
+- Automatic matching with Matched / Missing status
+- Section 17(5) blocked credit flagging on reconciled invoices
 
-5. **🧾 Conversational Billing & Invoicing**:
-   - Type transactions naturally (e.g., *"I bought 5 desks for ₹25,000 and sold software for ₹60,000"*).
-   - Automatically computes CGST/SGST/IGST, audits ITC under Section 16 & 17(5), and seals the transaction in an **append-only SHA-256 cryptographic ledger** (mini-blockchain).
+### Legal Knowledge Base
+- Downloads and indexes 5 official government sources (CBIC, Income Tax Dept, GST Portal)
+- SQLite FTS5 full-text search works offline after initial refresh
 
-6. **📥 1-Click Government E-Filing Exporters**:
-   - **ITR-1 / ITR-4 JSON**: Directly uploadable to `incometax.gov.in`.
-   - **GSTR-3B Summary JSON**: Directly uploadable to `gst.gov.in`.
-   - **Branded CA Statement of Total Income (PDF)**: High-resolution printable PDF with ReportLab formatting, CA seal, and SHA-256 verification hash.
+### Audit History
+- Every saved record contains inputs, calculation output, and SHA-256 hash chain reference
+- Tamper-evident: each record's hash depends on the previous record's hash
 
----
+## Architecture
 
-## 🗺️ **System Architecture**
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full safety rules and neuro-symbolic design.
 
-```text
-┌───────────────────────────────────────────────────────────────────────────┐
-│                      1. PRESENTATION / CLIENT LAYER                       │
-│   • PySide6 Desktop Workstation (.exe)   • Streamlit Web Demo (app_web.py)│
-│   • Dual Portal Gateway: [🏢 GST & Business] vs [👤 Personal Tax & Salary]│
-└─────────────────────────────────────┬─────────────────────────────────────┘
-                                      │
-                                      ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│                 2. APPLICATION ORCHESTRATION PIPELINE                     │
-│  [Natural Query / Invoice OCR] ──► [Intent Detector & Slot Planner]       │
-└──────────────────┬──────────────────────────────────────┬─────────────────┘
-                   │ (Extracts Legal Intent)              │ (Extracts Numbers & Params)
-                   ▼                                      ▼
-┌──────────────────────────────────────┐  ┌─────────────────────────────────┐
-│       3. "NEURO" LAYER (RAG)         │  │    4. "SYMBOLIC" LAYER (CODE)   │
-│ • Local LLM (Llama 3.2 / Phi-3)      │  │ • Tax Engine (Sec 115BAC / 87A) │
-│ • SQLite FTS5 Statutory Search       │  │ • GST 2B & Sec 17(5) Blocked ITC│
-│ • 54+ Statutory Corpus Chunks        │  │ • Budget 2024/25 Capital Gains  │
-│ • HSN / SAC Auto-Resolver            │  │ • 100% Deterministic Python Math│
-└──────────────────┬───────────────────┘  └───────────────┬─────────────────┘
-                   │                                      │
-                   └──────────────────┬───────────────────┘
-                                      │
-                                      ▼
-┌───────────────────────────────────────────────────────────────────────────┐
-│            5. VALIDATOR, CRYPTOGRAPHIC LEDGER & EXPORT LAYER              │
-│   • Output Guardrail & Domain Sanity Validator                            │
-│   • Append-Only SHA-256 Cryptographic Hash Chain (Tamper-Proof Audit)     │
-│   • Official Government Schema Exporters (ITR-1/4 JSON & GSTR-3B JSON)    │
-│   • High-Resolution Branded CA PDF Computation Statements                 │
-└───────────────────────────────────────────────────────────────────────────┘
+```
+finai/
+├── catalog.py         # 23 HSN/SAC records, versioned, with notifications
+├── gst_engine.py      # Date-aware rate resolution
+├── validators.py      # Math validation guardrails
+├── rules.py           # GST, income tax, capital gains, EMI, HRA, 44ADA, 44AD, 17(5), 86B
+├── parser.py          # NLP parser with smart clarification
+├── storage.py         # SQLite audit ledger with SHA-256 chain
+├── local_model.py     # Ollama status checker
+├── legal_sources.py   # FTS5 legal knowledge base
+app.py                 # Streamlit web UI (8 workspaces)
+tests/test_all.py      # 45+ automated tests
 ```
 
----
+## Run Locally
 
-## 🚀 **Quick Start & Installation**
+Install Python 3.12+, then:
 
-### 1. Prerequisites
-- Python 3.11+
-- [Ollama](https://ollama.com/) (Optional for on-device LLM conversation):
-  ```bash
-  ollama pull llama3.2:3b
-  ```
-
-### 2. Clone & Install Dependencies
-```bash
-git clone https://github.com/ykchoudhary110/FinAI-.git
-cd FinAI-
-pip install -r requirements.txt
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
 ```
 
-### 3. Run the Desktop Application (PySide6)
-```bash
-python -m finai.presentation.app_shell
-```
-*Or double-click `Launch_FinAI_Pro_CA.bat` on Windows.*
+Or double-click `start_finai.bat`.
 
-### 4. Run the Web App (Streamlit)
-```bash
-streamlit run app_web.py
-```
+## Optional Local AI Model
 
-### 5. Run the Automated Test Suite (42/42 Tests)
-```bash
-python -m pytest
+Install [Ollama](https://ollama.ai), then download one model while online:
+
+```powershell
+ollama pull qwen2.5:3b
+ollama serve
 ```
 
----
+The app never sends data to a cloud service. If Ollama is unavailable, FinAI uses its deterministic parser and guided forms.
 
-## 🛡️ **Empirical Benchmark & Evaluation Results**
+## Run Tests
 
-- **Total Test Benchmark Cases**: 42 / 42 (100% Passing)
-- **Top-1 Statutory Retrieval Precision**: 100.0%
-- **Statutory Citation Accuracy**: 100.0%
-- **Neuro-Symbolic Rule Verification**: 100.0%
-- **Mean Offline Retrieval Latency**: 0.23 ms (SQLite FTS5)
+```powershell
+python -m pytest tests/ -v
+```
 
----
+## Important
 
-## 📄 **License**
-This project is licensed under the MIT License — see the LICENSE file for details.
+This project is an educational/demo tool, not filing software or professional tax advice. Validate current rules, notifications, and official schemas before filing.

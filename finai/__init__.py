@@ -1,0 +1,1 @@
+"""FinAI offline application package."""

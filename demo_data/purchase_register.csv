@@ -1,0 +1,6 @@
+invoice_no,supplier,tax_amount,category
+INV-101,Dell India,18000.00,Office Laptops
+INV-102,Taj Hotels,3600.00,Client Dinner
+INV-103,Airtel Broadband,180.00,Internet
+INV-104,Local Stationery,540.00,Office Supplies
+INV-105,Mercedes Benz,450000.00,Executive Car
