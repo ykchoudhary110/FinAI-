@@ -21,15 +21,16 @@ def gst(base_amount: float, rate: float, interstate: bool) -> dict:
 
 
 def _slab_tax(income: float, slabs: list[tuple[float, float]]) -> float:
-    remaining = Decimal(str(income))
+    inc = Decimal(str(income))
     lower = Decimal("0")
     total = Decimal("0")
     for upper, rate in slabs:
         upper_d = Decimal(str(upper)) if upper != float("inf") else Decimal("99999999999")
-        taxable = max(Decimal("0"), min(remaining, upper_d - lower))
-        total += taxable * Decimal(str(rate))
+        if inc > lower:
+            taxable_chunk = min(inc, upper_d) - lower
+            total += taxable_chunk * Decimal(str(rate))
         lower = upper_d
-        if Decimal(str(income)) <= upper_d:
+        if inc <= upper_d:
             break
     return money(total)
 

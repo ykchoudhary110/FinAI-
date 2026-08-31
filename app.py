@@ -78,10 +78,140 @@ def sidebar() -> str:
         return st.radio("Workspace", WORKSPACES, key="workspace", label_visibility="collapsed")
 
 
-def audit_panel(record: dict, inputs: dict, result: dict) -> None:
+def render_ca_explanation(kind: str, inputs: dict, result: dict, record: dict | None = None) -> None:
+    """Render a human-readable, professional Chartered Accountant memorandum."""
+    with st.expander("⚖️ CA Advisory Memorandum & Statutory Trace", expanded=True):
+        if kind == "personal_tax":
+            new_reg = result.get("new_regime", {})
+            old_reg = result.get("old_regime", {})
+            rec = result.get("recommendation", "New regime")
+            diff = result.get("estimated_difference", 0.0)
+            gross = inputs.get("gross_income", 0.0)
+            
+            st.markdown("### 📋 Income Tax Advisory Report (FY 2024-25 / AY 2025-26)")
+            
+            if rec == "New regime":
+                st.success(f"**Optimal Strategy**: Select **New Tax Regime (Section 115BAC)** — Saves **{rupees(diff)}** in net taxes.")
+            else:
+                st.success(f"**Optimal Strategy**: Select **Old Tax Regime** — Saves **{rupees(diff)}** due to eligible Chapter VI-A deductions & home loan interest.")
+
+            comp_df = pd.DataFrame({
+                "Tax Component": [
+                    "Gross Income / CTC",
+                    "Standard Deduction (Sec 16(ia))",
+                    "Chapter VI-A Deductions (80C/80D/NPS)",
+                    "HRA Exemption (Sec 10(13A))",
+                    "Home Loan Interest (Sec 24(b))",
+                    "Net Taxable Income",
+                    "Calculated Slab Tax",
+                    "Section 87A Tax Rebate",
+                    "Health & Education Cess (4%)",
+                    "Total Net Tax Payable",
+                ],
+                "New Regime (Sec 115BAC)": [
+                    rupees(gross),
+                    rupees(new_reg.get("deductions_allowed", 75000)),
+                    "Not Allowed",
+                    "Not Allowed",
+                    "Not Allowed",
+                    rupees(new_reg.get("taxable_income", 0)),
+                    rupees(new_reg.get("slab_tax", 0)),
+                    rupees(new_reg.get("rebate", 0)),
+                    rupees(new_reg.get("cess", 0)),
+                    f"**{rupees(new_reg.get('total_tax', 0))}**",
+                ],
+                "Old Regime": [
+                    rupees(gross),
+                    "₹50,000.00",
+                    rupees(inputs.get("deductions", 0)),
+                    rupees(inputs.get("hra", 0)),
+                    rupees(inputs.get("home_loan_interest", 0)),
+                    rupees(old_reg.get("taxable_income", 0)),
+                    rupees(old_reg.get("slab_tax", 0)),
+                    rupees(old_reg.get("rebate", 0)),
+                    rupees(old_reg.get("cess", 0)),
+                    f"**{rupees(old_reg.get('total_tax', 0))}**",
+                ],
+            })
+            st.table(comp_df)
+
+            st.markdown("#### 📖 Statutory Basis & Legal Provisions:")
+            st.markdown(f"""
+1. **Section 115BAC (New Default Regime)**:
+   - Enhanced Standard Deduction of **₹75,000** under Section 16(ia) (Finance Act 2024).
+   - Revised Slabs: 0-4L (0%), 4-8L (5%), 8-12L (10%), 12-16L (15%), 16-20L (20%), 20-24L (25%), >24L (30%).
+   - **Section 87A Rebate**: Resident individuals with taxable income up to **₹12,00,000** get full tax rebate (Effective Net Tax = ₹0).
+2. **Old Tax Regime**:
+   - Standard Deduction of **₹50,000** + Chapter VI-A deductions (80C, 80D, 80CCD, etc.) up to ₹3,00,000.
+   - Slabs: 0-2.5L (0%), 2.5-5L (5%), 5-10L (20%), >10L (30%).
+   - **Section 87A Rebate**: Applicable only up to **₹5,00,000** taxable income.
+3. **Health & Education Cess**:
+   - Flat **4%** statutory cess on aggregate income tax after Section 87A rebate.
+            """)
+
+        elif kind == "gst_transaction":
+            cls = result.get("classification", {})
+            st.markdown("### 📋 GST Compliance & Invoicing Assessment")
+            st.markdown(f"""
+- **Tariff Classification**: `{cls.get('code')}` — **{cls.get('name')}** ({cls.get('kind')})
+- **Statutory Authority**: *{cls.get('source')}*
+- **Taxable Base Amount**: {rupees(result.get('taxable_value', 0))}
+- **Rate Applied**: **{result.get('rate')}%** ({result.get('tax_treatment')})
+- **Tax Breakdown**: CGST: {rupees(result.get('cgst', 0))} | SGST: {rupees(result.get('sgst', 0))} | IGST: {rupees(result.get('igst', 0))}
+- **Gross Invoice Total**: **{rupees(result.get('invoice_total', 0))}**
+- **Input Tax Credit Status**: {result.get('itc_message')}
+            """)
+            val = validate_gst(result["taxable_value"], result["gst_amount"], result["cgst"], result["sgst"], result["igst"], result["invoice_total"], result["tax_treatment"] == "IGST")
+            st.markdown("**Arithmetic Validation Checks:**")
+            for check in val["checks"]:
+                st.write(check)
+
+        elif kind == "capital_gains":
+            st.markdown("### 📋 Capital Gains Statutory Assessment (Budget 2024/25)")
+            st.markdown(f"""
+- **STCG Equity (Section 111A)**: Taxed @ **20%** = {rupees(result.get('stcg_tax', 0))}
+- **LTCG Equity (Section 112A)**: Taxed @ **12.5%** after statutory exemption of **₹1,25,000** = {rupees(result.get('ltcg_equity_tax', 0))} (Exempt amount: {rupees(result.get('ltcg_equity_exemption', 0))})
+- **LTCG Property / Gold (Section 112)**: Taxed @ **12.5%** (without indexation) = {rupees(result.get('ltcg_property_tax', 0))}
+- **Health & Education Cess (4%)**: {rupees(result.get('cess', 0))}
+- **Total Net Capital Gains Tax**: **{rupees(result.get('total_capital_gains_tax', 0))}**
+            """)
+
+        elif kind == "presumptive_tax":
+            st.markdown("### 📋 Presumptive Taxation Advisory (Section 44ADA & 44AD)")
+            ada = result.get("section_44ada", {})
+            ad = result.get("section_44ad", {})
+            st.markdown(f"""
+- **Section 44ADA (Specified Professionals & Freelancers)**:
+  - Gross Receipts: {rupees(ada.get('gross_receipts', 0))}
+  - Statutory Deemed Taxable Profit (50%): **{rupees(ada.get('taxable_profit', 0))}** *(No books of accounts/audit required up to ₹75 Lakhs)*.
+- **Section 44AD (Small Businesses & Traders)**:
+  - Digital Turnover (6% Deemed Profit): {rupees(ad.get('digital_turnover', 0))} → Profit: {rupees(ad.get('digital_profit', 0))}
+  - Cash Turnover (8% Deemed Profit): {rupees(ad.get('cash_turnover', 0))} → Profit: {rupees(ad.get('cash_profit', 0))}
+  - Total Deemed Business Profit: **{rupees(ad.get('total_profit', 0))}**
+            """)
+
+        elif kind == "emi_calculation":
+            st.markdown("### 📋 Loan Amortization & Repayment Summary")
+            st.markdown(f"""
+- **Loan Principal**: {rupees(result.get('principal', 0))}
+- **Interest Rate**: {result.get('annual_rate')}% p.a. (Reducing Balance Method)
+- **Tenure**: {result.get('tenure_months')} Months ({result.get('tenure_months', 0) // 12} Years {result.get('tenure_months', 0) % 12} Months)
+- **Equated Monthly Installment (EMI)**: **{rupees(result.get('monthly_emi', 0))}**
+- **Total Lifetime Interest Burden**: {rupees(result.get('total_interest', 0))}
+- **Total Repayment Amount**: **{rupees(result.get('total_payment', 0))}**
+            """)
+
+        if record:
+            st.divider()
+            with st.expander("🔒 Cryptographic SHA-256 Audit Trail", expanded=False):
+                st.caption("Immutable ledger entry details for audit defense and compliance verification.")
+                b_hash = record.get('hash') or record.get('audit_hash', '')
+                st.code(f"Audit Record ID : #{record.get('id')}\nTimestamp       : {record.get('created_at')}\nPrevious Hash   : {record.get('previous_hash')}\nBlock Hash      : {b_hash}", language="text")
+
+
+def audit_panel(kind: str, record: dict, inputs: dict, result: dict) -> None:
     st.success(f"Saved locally as audit record #{record['id']}")
-    with st.expander("Why this answer? — calculation and audit trace", expanded=False):
-        st.json({"inputs": inputs, "calculation": result, "previous_hash": record["previous_hash"], "audit_hash": record["hash"]})
+    render_ca_explanation(kind, inputs, result, record)
 
 
 def why_this_answer(item: dict, rate_result, result: dict, is_interstate: bool) -> None:
@@ -221,7 +351,7 @@ def gst_workspace() -> None:
     if st.button("Confirm and save transaction", type="primary"):
         inputs = {"description": draft["raw"], "amount": amount, "transaction_type": kind, "interstate": interstate, "classification": item["code"]}
         record = save("gst_transaction", inputs, result)
-        audit_panel(record, inputs, result)
+        audit_panel("gst_transaction", record, inputs, result)
         st.download_button("Download transaction JSON", json.dumps({"input": inputs, "result": result, "audit": record}, indent=2), "finai_gst_draft.json", "application/json")
 
 
@@ -257,17 +387,15 @@ def tax_workspace() -> None:
     st.dataframe(table.style.format(rupees), use_container_width=True)
     st.success(f"Based on the numbers entered, **{winner}** is lower by **{rupees(savings)}**.")
 
-    with st.expander("💡 Why this answer? — regime comparison logic"):
-        st.markdown(f"""
-- **New regime (Section 115BAC)**: ₹75,000 standard deduction. No Chapter VI-A deductions allowed. Rebate under Section 87A up to ₹12,00,000 taxable income.
-- **Old regime**: ₹50,000 standard deduction + entered deductions ({rupees(deductions)}) + HRA ({rupees(hra)}) + home loan ({rupees(home)}). Rebate under Section 87A up to ₹5,00,000 taxable income.
-- **4% Health & Education Cess** applied on tax after rebate in both regimes.
-        """)
+    inputs = {"gross_income": gross, "deductions": deductions, "hra": hra, "home_loan_interest": home}
+    result = {"new_regime": new, "old_regime": old, "recommendation": winner, "estimated_difference": savings}
+    
+    # Render rich CA advisory report
+    render_ca_explanation("personal_tax", inputs, result)
 
     if st.button("Save personal-tax calculation", type="primary"):
-        inputs = {"gross_income": gross, "deductions": deductions, "hra": hra, "home_loan_interest": home}
-        result = {"new_regime": new, "old_regime": old, "recommendation": winner, "estimated_difference": savings}
-        audit_panel(save("personal_tax", inputs, result), inputs, result)
+        record = save("personal_tax", inputs, result)
+        audit_panel("personal_tax", record, inputs, result)
 
 
 def capital_gains_workspace() -> None:
@@ -288,18 +416,12 @@ def capital_gains_workspace() -> None:
     st.info(f"Statutory exemption under Section 112A: **-{rupees(res['ltcg_equity_exemption'])}** applied to equity LTCG.")
     st.success(f"**Total capital gains tax (with 4% cess): {rupees(res['total_capital_gains_tax'])}**")
 
-    with st.expander("💡 Why this answer? — capital gains logic"):
-        st.markdown(f"""
-- **STCG equity (Sec 111A)**: ₹{stcg_eq:,.2f} × 20% = ₹{res['stcg_tax']:,.2f}
-- **LTCG equity (Sec 112A)**: ₹{ltcg_eq:,.2f} − ₹{res['ltcg_equity_exemption']:,.2f} exemption = ₹{res['taxable_ltcg_equity']:,.2f} × 12.5% = ₹{res['ltcg_equity_tax']:,.2f}
-- **LTCG property (Sec 112)**: ₹{ltcg_prop:,.2f} × 12.5% = ₹{res['ltcg_property_tax']:,.2f}
-- **Cess**: 4% on ₹{res['total_before_cess']:,.2f} = ₹{res['cess']:,.2f}
-- Budget 2024/25: LTCG exemption enhanced to ₹1,25,000. Indexation removed for property.
-        """)
+    inputs = {"stcg_equity": stcg_eq, "ltcg_equity": ltcg_eq, "ltcg_property": ltcg_prop}
+    render_ca_explanation("capital_gains", inputs, res)
 
     if st.button("Save capital gains calculation", type="primary"):
-        inputs = {"stcg_equity": stcg_eq, "ltcg_equity": ltcg_eq, "ltcg_property": ltcg_prop}
-        audit_panel(save("capital_gains", inputs, res), inputs, res)
+        record = save("capital_gains", inputs, res)
+        audit_panel("capital_gains", record, inputs, res)
 
 
 def freelancer_workspace() -> None:
@@ -320,10 +442,13 @@ def freelancer_workspace() -> None:
         st.success(f"**Total deemed profit**: {rupees(res_ad['total_profit'])}")
         st.caption(f"Digital: {rupees(res_ad['digital_profit'])} + Cash: {rupees(res_ad['cash_profit'])}")
 
+    inputs = {"type": "44ADA+44AD", "professional_receipts": p_rec, "digital_turnover": d_to, "cash_turnover": c_to}
+    result = {"section_44ada": res_ada, "section_44ad": res_ad}
+    render_ca_explanation("presumptive_tax", inputs, result)
+
     if st.button("Save presumptive tax calculation", type="primary"):
-        inputs = {"type": "44ADA+44AD", "professional_receipts": p_rec, "digital_turnover": d_to, "cash_turnover": c_to}
-        result = {"section_44ada": res_ada, "section_44ad": res_ad}
-        audit_panel(save("presumptive_tax", inputs, result), inputs, result)
+        record = save("presumptive_tax", inputs, result)
+        audit_panel("presumptive_tax", record, inputs, result)
 
 
 def emi_workspace() -> None:
@@ -344,9 +469,12 @@ def emi_workspace() -> None:
     c3.metric("Total payment", rupees(res["total_payment"]))
     st.caption(f"Loan: {rupees(res['principal'])} at {res['annual_rate']}% for {res['tenure_months']} months ({res['tenure_months'] // 12} years {res['tenure_months'] % 12} months)")
 
+    inputs = {"principal": principal, "annual_rate": rate, "tenure_months": tenure}
+    render_ca_explanation("emi_calculation", inputs, res)
+
     if st.button("Save EMI calculation", type="primary"):
-        inputs = {"principal": principal, "annual_rate": rate, "tenure_months": tenure}
-        audit_panel(save("emi_calculation", inputs, res), inputs, res)
+        record = save("emi_calculation", inputs, res)
+        audit_panel("emi_calculation", record, inputs, res)
 
 
 def reconciliation_workspace() -> None:
@@ -405,8 +533,7 @@ def audit_workspace() -> None:
         return
     for row in records:
         with st.expander(f"#{row['id']} · {row['kind']} · {row['created_at']}"):
-            st.code(row["audit_hash"], language=None)
-            st.json({"input": json.loads(row["input_json"]), "result": json.loads(row["result_json"]), "previous_hash": row["previous_hash"]})
+            render_ca_explanation(row['kind'], json.loads(row['input_json']), json.loads(row['result_json']), dict(row))
 
 
 # ==================== ROUTING ====================
