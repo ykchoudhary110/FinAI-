@@ -72,7 +72,10 @@ def sidebar() -> str:
         st.caption("Your offline CA workspace")
         st.divider()
         online, message = model_status()
-        st.success(f"Local AI: {message}") if online else st.info(f"Local AI: {message}")
+        if online:
+            st.success(f"Local AI: {message}")
+        else:
+            st.info(f"Local AI: {message}")
         st.caption("Your records and calculations remain on this computer.")
         st.divider()
         return st.radio("Workspace", WORKSPACES, key="workspace", label_visibility="collapsed")
